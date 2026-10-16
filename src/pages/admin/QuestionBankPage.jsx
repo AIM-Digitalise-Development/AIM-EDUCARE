@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+﻿import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminQuestionsApi } from '@/api/admin/questions';
 import { adminCatalogApi } from '@/api/admin/catalog';
@@ -24,7 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Plus, Upload, Trash2, Edit2, Search } from 'lucide-react';
+import { Plus, Upload, Trash2, Edit2, Search, Download, FileSpreadsheet, GraduationCap, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function QuestionBankPage() {
@@ -58,11 +58,39 @@ export default function QuestionBankPage() {
   const [bulkExamId, setBulkExamId] = useState('');
   const [bulkFile, setBulkFile] = useState(null);
   const [bulkUploading, setBulkUploading] = useState(false);
+  const fileInputRef = useRef(null);
+  const [attachingSample, setAttachingSample] = useState(false);
+
+  const handleAttachDummyCsv = async () => {
+    setAttachingSample(true);
+    try {
+      const response = await fetch('/questions_sample_50.csv');
+      if (!response.ok) throw new Error('File not found');
+      const blob = await response.blob();
+      const file = new File([blob], 'questions_sample_50.csv', { type: 'text/csv' });
+      setBulkFile(file);
+
+      try {
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        if (fileInputRef.current) {
+          fileInputRef.current.files = dt.files;
+        }
+      } catch (_) {
+        // Fallback for browsers
+      }
+      toast.success('Attached questions_sample_50.csv (50 questions)');
+    } catch (err) {
+      toast.error('Failed to attach sample CSV');
+    } finally {
+      setAttachingSample(false);
+    }
+  };
 
   const { data: exams } = useQuery({
     queryKey: ['admin-exams-dropdown'],
     queryFn: async () => {
-      const res = await adminCatalogApi.getExams();
+      const res = await adminCatalogApi.getExams({ all: true, per_page: 100 });
       return res.data?.data?.items || res.data?.data || [];
     },
   });
@@ -130,7 +158,8 @@ export default function QuestionBankPage() {
 
   const handleOpenEdit = (q) => {
     setEditingQuestion(q);
-    setFormExamId(String(q.exam_id));
+    const targetExamId = q.exam_id || q.exam?.id || '';
+    setFormExamId(targetExamId ? String(targetExamId) : '');
     setFormType(q.type);
     setFormDifficulty(q.difficulty);
     setFormQuestionText(q.question_text || '');
@@ -519,15 +548,69 @@ export default function QuestionBankPage() {
             </div>
 
             <div>
-              <label className="text-xs font-semibold">Select CSV File</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-semibold">Select CSV File</label>
+                <a
+                  href="/questions_sample_50.csv"
+                  download="questions_sample_50.csv"
+                  className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Download Sample CSV
+                </a>
+              </div>
               <Input
+                ref={fileInputRef}
                 type="file"
                 accept=".csv"
                 onChange={(e) => setBulkFile(e.target.files?.[0] || null)}
                 className="mt-1"
               />
-              <p className="text-[11px] text-muted-foreground mt-1">
-                CSV headers: type, difficulty, question_text, opt_a, opt_b, opt_c, opt_d, correct_answer, explanation
+
+              {/* Sample file attach card */}
+              <div className="mt-2.5 p-3 bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/70 dark:border-blue-900/50 rounded-lg">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-start gap-2">
+                    <FileSpreadsheet className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs font-semibold text-foreground">
+                        Dummy Example CSV (50 Questions)
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+                        Pre-formatted with 35 MCQs, 10 Numerical, and 5 True/False questions.
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={handleAttachDummyCsv}
+                    disabled={attachingSample}
+                    className="shrink-0 h-7 text-xs bg-white dark:bg-slate-900 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-800"
+                  >
+                    {attachingSample ? 'Attaching...' : 'Attach Sample'}
+                  </Button>
+                </div>
+                {bulkFile && (
+                  <div className="mt-2 pt-2 border-t border-blue-200/50 dark:border-blue-900/30 flex items-center justify-between text-xs text-emerald-700 dark:text-emerald-400">
+                    <span className="truncate">Attached: <strong>{bulkFile.name}</strong></span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setBulkFile(null);
+                        if (fileInputRef.current) fileInputRef.current.value = '';
+                      }}
+                      className="text-[11px] text-muted-foreground hover:text-red-600 underline ml-2"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <p className="text-[10px] text-muted-foreground mt-2 font-mono leading-tight">
+                CSV headers: type, difficulty, subject, topic, question_text, option_a, option_b, option_c, option_d, correct_answer, explanation_text
               </p>
             </div>
 

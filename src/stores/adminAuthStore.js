@@ -1,4 +1,4 @@
-﻿import { create } from 'zustand';
+import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 export const useAdminAuthStore = create(
@@ -11,7 +11,14 @@ export const useAdminAuthStore = create(
         const u = get().user;
         if (!u) return false;
         if (u.role === 'admin') return true;
-        return (u.permissions || []).includes(key);
+        if (key === 'admin_only') return false;
+        const userPerms = (u.permissions || []).map((p) =>
+          typeof p === 'string' ? p : p.permission_key
+        );
+        if (Array.isArray(key)) {
+          return key.some((k) => userPerms.includes(k));
+        }
+        return userPerms.includes(key);
       },
       setAuth: (user, token) => set({ user, token }),
       logout: () => set({ user: null, token: null }),

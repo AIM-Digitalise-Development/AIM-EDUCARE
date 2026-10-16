@@ -9,3 +9,5 @@ export const examsApi = {
   getMyExams: () => api.get('/api/my/exams'),
   getMyExamTests: (slug) => api.get(`/api/my/exams/${slug}/tests`),
 };
+
+export const publicExamsApi = examsApi;

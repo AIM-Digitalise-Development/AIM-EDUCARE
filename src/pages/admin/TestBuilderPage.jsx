@@ -27,7 +27,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import LoadingSpinner from '@/components/shared/LoadingSpinner';
-import { ArrowLeft, Save, Globe, Calendar, Plus, Trash2, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Save, Globe, Calendar, Plus, Trash2, CheckCircle2, Info, Layers, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function TestBuilderPage() {
@@ -54,6 +54,7 @@ export default function TestBuilderPage() {
   const [negativeMarking, setNegativeMarking] = useState(true);
   const [sectionsEnabled, setSectionsEnabled] = useState(false);
   const [resultVisibility, setResultVisibility] = useState('full');
+  const [activeTab, setActiveTab] = useState('metadata');
 
   // Sync test query to state
   useEffect(() => {
@@ -104,8 +105,12 @@ export default function TestBuilderPage() {
   const updateMetaMutation = useMutation({
     mutationFn: (payload) => adminTestsApi.updateTest(testId, payload),
     onSuccess: () => {
-      queryClient.invalidateQueries(['admin-test-detail', testId]);
-      toast.success('Test metadata updated');
+      queryClient.invalidateQueries({ queryKey: ['admin-test-detail', testId] });
+      queryClient.invalidateQueries({ queryKey: ['admin-tests'] });
+      toast.success('Test configuration saved successfully');
+      if (sectionsEnabled) {
+        setActiveTab('sections');
+      }
     },
     onError: (err) => {
       toast.error(err.response?.data?.message || 'Error updating metadata');
@@ -115,7 +120,8 @@ export default function TestBuilderPage() {
   const publishMutation = useMutation({
     mutationFn: () => adminTestsApi.publishTest(testId),
     onSuccess: () => {
-      queryClient.invalidateQueries(['admin-test-detail', testId]);
+      queryClient.invalidateQueries({ queryKey: ['admin-test-detail', testId] });
+      queryClient.invalidateQueries({ queryKey: ['admin-tests'] });
       toast.success('Test published successfully!');
     },
     onError: (err) => {
@@ -126,7 +132,8 @@ export default function TestBuilderPage() {
   const scheduleLiveMutation = useMutation({
     mutationFn: (payload) => adminTestsApi.scheduleLive(testId, payload),
     onSuccess: () => {
-      queryClient.invalidateQueries(['admin-test-detail', testId]);
+      queryClient.invalidateQueries({ queryKey: ['admin-test-detail', testId] });
+      queryClient.invalidateQueries({ queryKey: ['admin-tests'] });
       toast.success('Live test scheduled successfully!');
       setScheduleModalOpen(false);
     },
@@ -138,7 +145,8 @@ export default function TestBuilderPage() {
   const addSectionMutation = useMutation({
     mutationFn: (payload) => adminTestsApi.addSection(testId, payload),
     onSuccess: () => {
-      queryClient.invalidateQueries(['admin-test-detail', testId]);
+      queryClient.invalidateQueries({ queryKey: ['admin-test-detail', testId] });
+      queryClient.invalidateQueries({ queryKey: ['admin-tests'] });
       toast.success('Section added');
       setSectionModalOpen(false);
       setSectionName('');
@@ -151,7 +159,8 @@ export default function TestBuilderPage() {
   const addQuestionsMutation = useMutation({
     mutationFn: (payload) => adminTestsApi.addQuestions(testId, payload),
     onSuccess: () => {
-      queryClient.invalidateQueries(['admin-test-detail', testId]);
+      queryClient.invalidateQueries({ queryKey: ['admin-test-detail', testId] });
+      queryClient.invalidateQueries({ queryKey: ['admin-tests'] });
       toast.success('Questions attached to test');
       setSelectedQids([]);
     },
@@ -163,7 +172,8 @@ export default function TestBuilderPage() {
   const removeQuestionMutation = useMutation({
     mutationFn: (qid) => adminTestsApi.removeQuestion(testId, qid),
     onSuccess: () => {
-      queryClient.invalidateQueries(['admin-test-detail', testId]);
+      queryClient.invalidateQueries({ queryKey: ['admin-test-detail', testId] });
+      queryClient.invalidateQueries({ queryKey: ['admin-tests'] });
       toast.success('Question removed');
     },
     onError: (err) => {
@@ -276,16 +286,25 @@ export default function TestBuilderPage() {
       </div>
 
       {/* Tabs Layout */}
-      <Tabs defaultValue="metadata" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 max-w-md">
-          <TabsTrigger value="metadata">1. Settings</TabsTrigger>
-          <TabsTrigger value="sections" disabled={!sectionsEnabled}>
-            2. Sections {sectionsEnabled ? `(${test.sections?.length || 0})` : ''}
-          </TabsTrigger>
-          <TabsTrigger value="questions">
-            3. Questions ({attachedTestQuestions.length})
-          </TabsTrigger>
-        </TabsList>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <div>
+          <TabsList className="grid w-full grid-cols-3 max-w-md">
+            <TabsTrigger value="metadata">1. Settings</TabsTrigger>
+            <TabsTrigger value="sections" className="flex items-center gap-1.5">
+              2. Sections {sectionsEnabled ? `(${test.sections?.length || 0})` : ''}
+              {!sectionsEnabled && <Lock className="h-3 w-3 opacity-60 ml-0.5" />}
+            </TabsTrigger>
+            <TabsTrigger value="questions">
+              3. Questions ({attachedTestQuestions.length})
+            </TabsTrigger>
+          </TabsList>
+          {!sectionsEnabled && (
+            <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1.5 flex items-center gap-1 font-medium">
+              <Info className="h-3.5 w-3.5 shrink-0" />
+              Enable sectional structure in Settings tab first to configure timed sections.
+            </p>
+          )}
+        </div>
 
         {/* Tab 1: Metadata */}
         <TabsContent value="metadata">
@@ -368,10 +387,12 @@ export default function TestBuilderPage() {
 
                 {/* Switches */}
                 <div className="space-y-3 pt-3 border-t">
-                  <div className="flex items-center justify-between rounded-lg border p-3">
+                  <div className="flex items-center justify-between rounded-lg border p-3.5 bg-card">
                     <div>
-                      <div className="text-sm font-medium">Enable Sectional Structure</div>
-                      <div className="text-xs text-muted-foreground">Divide questions into timed sections</div>
+                      <div className="text-sm font-semibold text-foreground">Enable Sectional Structure</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        Adds a Sections tab where you can group questions under timed sections with custom marks and cutoffs.
+                      </div>
                     </div>
                     <Switch checked={sectionsEnabled} onCheckedChange={setSectionsEnabled} />
                   </div>
@@ -412,39 +433,63 @@ export default function TestBuilderPage() {
 
         {/* Tab 2: Sections */}
         <TabsContent value="sections">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Sectional Breakdown</CardTitle>
-              <Button size="sm" onClick={() => setSectionModalOpen(true)} className="gap-1.5 text-xs">
-                <Plus className="h-4 w-4" />
-                Add Section
-              </Button>
-            </CardHeader>
-            <CardContent>
-              {!test.sections || test.sections.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-6">
-                  No sections created yet. Add section domains to group questions.
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {test.sections.map((sec) => (
-                    <div key={sec.id} className="flex items-center justify-between p-3 border rounded-lg bg-card">
-                      <div>
-                        <div className="font-semibold text-sm">{sec.name}</div>
-                        <div className="text-xs text-muted-foreground">
-                          Marks/Q: +{sec.marks_per_q} | Negative: -{sec.negative_marks} |{' '}
-                          {sec.duration_sec ? `${Math.round(sec.duration_sec / 60)} min` : 'No time limit'}
-                        </div>
-                      </div>
-                      <Badge variant="outline" className="text-xs">
-                        Section #{sec.sort_order}
-                      </Badge>
-                    </div>
-                  ))}
+          {!sectionsEnabled ? (
+            <Card className="border-amber-200 bg-amber-50/40 dark:bg-amber-950/20">
+              <CardContent className="p-8 sm:p-12 text-center space-y-4">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 text-amber-600 dark:bg-amber-900/50 dark:text-amber-300">
+                  <Layers className="h-6 w-6" />
                 </div>
-              )}
-            </CardContent>
-          </Card>
+                <div className="max-w-md mx-auto space-y-1.5">
+                  <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
+                    Sectional Structure is Disabled
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                    This test is not configured for sections. Enable "Sectional Structure" in the Settings tab to add timed sections with individual marks and cutoffs.
+                  </p>
+                </div>
+                <Button
+                  onClick={() => setActiveTab('metadata')}
+                  className="gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs shadow-sm"
+                >
+                  Go to Settings
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-lg">Sectional Breakdown</CardTitle>
+                <Button size="sm" onClick={() => setSectionModalOpen(true)} className="gap-1.5 text-xs">
+                  <Plus className="h-4 w-4" />
+                  Add Section
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {!test.sections || test.sections.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">
+                    No sections created yet. Add section domains to group questions.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {test.sections.map((sec) => (
+                      <div key={sec.id} className="flex items-center justify-between p-3 border rounded-lg bg-card">
+                        <div>
+                          <div className="font-semibold text-sm">{sec.name}</div>
+                          <div className="text-xs text-muted-foreground">
+                            Marks/Q: +{sec.marks_per_q} | Negative: -{sec.negative_marks} |{' '}
+                            {sec.duration_sec ? `${Math.round(sec.duration_sec / 60)} min` : 'No time limit'}
+                          </div>
+                        </div>
+                        <Badge variant="outline" className="text-xs">
+                          Section #{sec.sort_order}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* Tab 3: Questions Builder */}

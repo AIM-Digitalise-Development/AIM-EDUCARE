@@ -1,5 +1,6 @@
 ﻿import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Award, AlertCircle } from 'lucide-react';
 
 export default function QuestionView({
   question,
@@ -26,53 +27,64 @@ export default function QuestionView({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 font-sans">
       {/* Question metadata badge */}
-      <div className="flex items-center gap-2">
-        <Badge variant="secondary" className="capitalize text-xs font-normal">
-          Type: {type.replace('_', ' ')}
-        </Badge>
-        {question.marks_override && (
-          <span className="text-xs text-muted-foreground">
-            Marks: +{question.marks_override} / -{question.negative_override || 0}
+      <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-100">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold px-2.5 py-1 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 capitalize">
+            {type.replace('_', ' ')}
           </span>
-        )}
+          {isMulti && (
+            <span className="text-[11px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+              Multiple Options Allowed
+            </span>
+          )}
+        </div>
+        
+        <div className="flex items-center gap-2 text-xs font-semibold">
+          <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+            +{question.marks_override || 1.0} Marks
+          </span>
+          <span className="px-2 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200">
+            -{question.negative_override || 0.25} Negative
+          </span>
+        </div>
       </div>
 
       {/* Question Text */}
-      <div className="text-base sm:text-lg font-medium leading-relaxed text-foreground whitespace-pre-line">
+      <div className="text-base sm:text-lg font-semibold leading-relaxed text-slate-900 whitespace-pre-line">
         {question.question_text}
       </div>
 
       {/* Question Image if any */}
       {question.question_image_url && (
-        <div className="my-4 max-w-lg rounded-lg overflow-hidden border">
+        <div className="my-4 max-w-lg rounded-xl overflow-hidden border border-slate-200 shadow-xs bg-white p-2">
           <img
             src={question.question_image_url}
             alt="Question Diagram"
-            className="w-full object-contain max-h-80"
+            className="w-full object-contain max-h-80 rounded"
           />
         </div>
       )}
 
       {/* Answer inputs based on type */}
-      <div className="pt-4 border-t space-y-3">
+      <div className="pt-4 border-t border-slate-100 space-y-3">
         {isNumerical ? (
-          <div className="max-w-xs space-y-2">
-            <label className="text-xs font-semibold text-muted-foreground uppercase">
+          <div className="max-w-xs space-y-2 p-4 rounded-xl bg-slate-50 border border-slate-200">
+            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
               Enter Numerical Answer:
             </label>
             <Input
               type="number"
               step="any"
               placeholder="e.g. 42.5"
-              value={currentAnswer !== undefined ? currentAnswer : ''}
+              value={currentAnswer !== undefined && currentAnswer !== null ? currentAnswer : ''}
               onChange={(e) => onAnswerChange(e.target.value)}
-              className="text-lg font-mono"
+              className="text-xl font-mono font-bold bg-white h-12"
             />
           </div>
         ) : (
-          <div className="space-y-2.5">
+          <div className="space-y-3">
             {(question.options || []).map((opt) => {
               const isSelected = isMulti
                 ? Array.isArray(currentAnswer) && currentAnswer.includes(opt.option_key)
@@ -82,28 +94,28 @@ export default function QuestionView({
                 <div
                   key={opt.id || opt.option_key}
                   onClick={() => handleOptionToggle(opt.option_key)}
-                  className={`flex items-start gap-3 p-3.5 rounded-lg border cursor-pointer transition-all ${
+                  className={`flex items-start gap-3.5 p-4 rounded-xl border cursor-pointer transition-all duration-150 ${
                     isSelected
-                      ? 'border-primary bg-primary/5 text-foreground shadow-sm'
-                      : 'border-border hover:bg-muted/40 text-foreground/90'
+                      ? 'border-indigo-600 bg-indigo-50/70 text-slate-900 shadow-sm ring-1 ring-indigo-500/30'
+                      : 'border-slate-200/90 bg-white hover:bg-slate-50/70 text-slate-800'
                   }`}
                 >
                   <div
-                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-colors ${
+                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold transition-all shadow-xs ${
                       isSelected
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-muted-foreground'
+                        ? 'bg-indigo-600 text-white shadow-indigo-500/30'
+                        : 'bg-slate-100 text-slate-700 border border-slate-200'
                     }`}
                   >
                     {opt.option_key}
                   </div>
-                  <div className="flex-1 text-sm pt-0.5 leading-snug">
+                  <div className="flex-1 text-sm pt-0.5 leading-snug font-medium">
                     {opt.option_text}
                     {opt.option_image_url && (
                       <img
                         src={opt.option_image_url}
                         alt={`Option ${opt.option_key}`}
-                        className="mt-2 max-h-40 object-contain rounded"
+                        className="mt-2.5 max-h-40 object-contain rounded border border-slate-200"
                       />
                     )}
                   </div>
