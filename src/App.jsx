@@ -35,7 +35,7 @@ import ExamsPageAd from '@/pages/admin/exams/ExamsPage';
 import SubjectsPage from '@/pages/admin/exams/SubjectsPage';
 import TopicsPage from '@/pages/admin/exams/TopicsPage';
 import QuestionBankPage from '@/pages/admin/QuestionBankPage';
-// import TestBuilderPage from '@/pages/admin/TestBuilderPage';
+import TestBuilderPage from '@/pages/admin/TestBuilderPage';
 import TestListPage from '@/pages/admin/TestListPage';
 import PlansPage from '@/pages/admin/PlansPage';
 import UsersPage from '@/pages/admin/UsersPage';
