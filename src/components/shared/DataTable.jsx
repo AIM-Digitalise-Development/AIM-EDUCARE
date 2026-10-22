@@ -1,4 +1,4 @@
-﻿import {
+import {
   Table,
   TableBody,
   TableCell,
@@ -20,16 +20,28 @@ export default function DataTable({
     return <LoadingSpinner text="Loading data..." />;
   }
 
-  if (!data || data.length === 0) {
+  const rows = Array.isArray(data)
+    ? data
+    : Array.isArray(data?.items)
+    ? data.items
+    : Array.isArray(data?.data)
+    ? data.data
+    : Array.isArray(data?.plans)
+    ? data.plans
+    : [];
+
+  if (!rows || rows.length === 0) {
     return <EmptyState description={emptyMessage} />;
   }
+
+  const cols = Array.isArray(columns) ? columns : [];
 
   return (
     <div className="rounded-md border bg-card">
       <Table>
         <TableHeader>
           <TableRow>
-            {columns.map((col, idx) => (
+            {cols.map((col, idx) => (
               <TableHead key={col.key || idx} className={col.className}>
                 {col.header}
               </TableHead>
@@ -37,15 +49,15 @@ export default function DataTable({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data.map((row, rIdx) => (
+          {rows.map((row, rIdx) => (
             <TableRow
-              key={row.id || rIdx}
+              key={row?.id || rIdx}
               onClick={() => onRowClick && onRowClick(row)}
               className={onRowClick ? 'cursor-pointer hover:bg-muted/50' : ''}
             >
-              {columns.map((col, cIdx) => (
+              {cols.map((col, cIdx) => (
                 <TableCell key={col.key || cIdx} className={col.className}>
-                  {col.render ? col.render(row) : row[col.key]}
+                  {col.render ? col.render(row) : row?.[col.key]}
                 </TableCell>
               ))}
             </TableRow>

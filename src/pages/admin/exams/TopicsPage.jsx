@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
@@ -35,11 +35,15 @@ export default function TopicsPage() {
   const [editingTopic, setEditingTopic] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
 
-  const { data: topics, isLoading } = useQuery({
+  const { data: topics = [], isLoading } = useQuery({
     queryKey: ['admin-topics', subjectId],
     queryFn: async () => {
       const res = await adminCatalogApi.getTopics(subjectId);
-      return res.data?.data || [];
+      const raw = res.data?.data ?? res.data;
+      if (Array.isArray(raw)) return raw;
+      if (Array.isArray(raw?.items)) return raw.items;
+      if (Array.isArray(raw?.data)) return raw.data;
+      return [];
     },
   });
 

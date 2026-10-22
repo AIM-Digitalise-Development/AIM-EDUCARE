@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -44,21 +44,30 @@ export default function PlansPage() {
   const [editingPlan, setEditingPlan] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
 
-  const { data: exams } = useQuery({
+  const { data: exams = [] } = useQuery({
     queryKey: ['admin-exams-dropdown'],
     queryFn: async () => {
       const res = await adminCatalogApi.getExams();
-      return res.data?.data?.items || res.data?.data || [];
+      const raw = res.data?.data ?? res.data;
+      if (Array.isArray(raw)) return raw;
+      if (Array.isArray(raw?.items)) return raw.items;
+      if (Array.isArray(raw?.data)) return raw.data;
+      return [];
     },
   });
 
-  const { data: plans, isLoading } = useQuery({
+  const { data: plans = [], isLoading } = useQuery({
     queryKey: ['admin-plans', filterExam],
     queryFn: async () => {
       const params = {};
       if (filterExam) params.exam_id = filterExam;
       const res = await adminPlansApi.getPlans(params);
-      return res.data?.data || [];
+      const raw = res.data?.data ?? res.data;
+      if (Array.isArray(raw)) return raw;
+      if (Array.isArray(raw?.items)) return raw.items;
+      if (Array.isArray(raw?.data)) return raw.data;
+      if (Array.isArray(raw?.plans)) return raw.plans;
+      return [];
     },
   });
 

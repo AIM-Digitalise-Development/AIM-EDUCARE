@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminSubAdminsApi } from '@/api/admin/subAdmins';
 import DataTable from '@/components/shared/DataTable';
@@ -42,11 +42,15 @@ export default function SubAdminsPage() {
   const [selectedPermissions, setSelectedPermissions] = useState([]);
   const [fieldErrors, setFieldErrors] = useState({});
 
-  const { data: subadmins, isLoading } = useQuery({
+  const { data: subadmins = [], isLoading } = useQuery({
     queryKey: ['admin-subadmins'],
     queryFn: async () => {
       const res = await adminSubAdminsApi.getSubAdmins();
-      return res.data?.data || [];
+      const raw = res.data?.data ?? res.data;
+      if (Array.isArray(raw)) return raw;
+      if (Array.isArray(raw?.items)) return raw.items;
+      if (Array.isArray(raw?.data)) return raw.data;
+      return [];
     },
   });
 
